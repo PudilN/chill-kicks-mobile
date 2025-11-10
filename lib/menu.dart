@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:chill_kicks/screens/product_form.dart';
+import 'package:chill_kicks/widgets/left_drawer.dart';
 
-class MyHomePage extends StatelessWidget {
-  MyHomePage({super.key});
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
 
-  final String nama = "Ainur Fadhil"; //nama
-  final String npm = "2406360312"; //npm
-  final String kelas = "F"; //kelas
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  final String nama = "Ainur Fadhil";
+  final String npm = "2406360312";
+  final String kelas = "F";
 
   final List<ItemHomepage> items = [
     ItemHomepage("All Products", Icons.list, Colors.blue),
@@ -13,29 +20,27 @@ class MyHomePage extends StatelessWidget {
     ItemHomepage("Create Product", Icons.add, Colors.red),
   ];
 
+  // List untuk menyimpan produk yang baru ditambahkan
+  List<Map<String, dynamic>> _products = [];
+
   @override
   Widget build(BuildContext context) {
-    // Scaffold menyediakan struktur dasar halaman dengan AppBar dan body.
     return Scaffold(
-      // AppBar adalah bagian atas halaman yang menampilkan judul.
       appBar: AppBar(
-        // Judul aplikasi "Football News" dengan teks putih dan tebal.
         title: const Text(
           'Chill Kicks',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        // Warna latar belakang AppBar diambil dari skema warna tema aplikasi.
         backgroundColor: Theme.of(context).colorScheme.primary,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      // Body halaman dengan padding di sekelilingnya.
+      drawer: const LeftDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        // Menyusun widget secara vertikal dalam sebuah kolom.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Row untuk menampilkan 3 InfoCard secara horizontal.
+            // InfoCard
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -44,46 +49,67 @@ class MyHomePage extends StatelessWidget {
                 InfoCard(title: 'Class', content: kelas),
               ],
             ),
-
-            // Memberikan jarak vertikal 16 unit.
             const SizedBox(height: 16.0),
 
-            // Menempatkan widget berikutnya di tengah halaman.
-            Center(
-              child: Column(
-                // Menyusun teks dan grid item secara vertikal.
-                children: [
-                  // Menampilkan teks sambutan dengan gaya tebal dan ukuran 18.
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16.0),
-                    child: Text(
-                      'Selamat datang di Chill Kicks!',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.0,
-                      ),
-                    ),
-                  ),
-
-                  // Grid untuk menampilkan ItemCard dalam bentuk grid 3 kolom.
-                  GridView.count(
-                    primary: false,
-                    padding: const EdgeInsets.all(16.0),
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    crossAxisCount: 3,
-                    physics: NeverScrollableScrollPhysics(),
-                    // Agar grid menyesuaikan tinggi kontennya.
-                    shrinkWrap: true,
-
-                    // Menampilkan ItemCard untuk setiap item dalam list items.
-                    children: items.map((ItemHomepage item) {
-                      return ItemCard(item);
-                    }).toList(),
-                  ),
-                ],
-              ),
+            const Text(
+              'Selamat datang di Chill Kicks!',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
             ),
+
+            // Grid Menu
+            GridView.count(
+              primary: false,
+              padding: const EdgeInsets.all(16.0),
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              crossAxisCount: 3,
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              children: items.map((ItemHomepage item) {
+                return ItemCard(
+                  item,
+                  onProductCreated: (product) {
+                    setState(() {
+                      _products.add(product);
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          "Produk '${product["name"]}' berhasil ditambahkan!",
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                );
+              }).toList(),
+            ),
+
+            // Menampilkan produk yang sudah dibuat
+            if (_products.isNotEmpty) ...[
+              const Divider(),
+              const SizedBox(height: 10),
+              const Text(
+                "Produk yang baru ditambahkan:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _products.length,
+                  itemBuilder: (context, index) {
+                    final p = _products[index];
+                    return ListTile(
+                      leading: const Icon(
+                        Icons.shopping_bag,
+                        color: Colors.deepOrange,
+                      ),
+                      title: Text(p["name"]),
+                      subtitle: Text("Rp ${p["price"]} • ${p["category"]}"),
+                    );
+                  },
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -92,39 +118,42 @@ class MyHomePage extends StatelessWidget {
 }
 
 class ItemCard extends StatelessWidget {
-  // Menampilkan kartu dengan ikon dan nama.
-
   final ItemHomepage item;
+  final Function(Map<String, dynamic>)? onProductCreated;
 
-  const ItemCard(this.item, {super.key});
+  const ItemCard(this.item, {super.key, this.onProductCreated});
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      // Menentukan warna latar belakang dari tema aplikasi.
       color: item.color,
-      // Membuat sudut kartu melengkung.
       borderRadius: BorderRadius.circular(12),
-
       child: InkWell(
-        // Aksi ketika kartu ditekan.
-        onTap: () {
-          // Menampilkan pesan SnackBar saat kartu ditekan.
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(
-                content: Text("Kamu telah menekan tombol ${item.name}!"),
-                backgroundColor: item.color,
-              ),
+        onTap: () async {
+          if (item.name == "Create Product") {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProductFormPage()),
             );
+
+            if (result != null && onProductCreated != null) {
+              onProductCreated!(result);
+            }
+          } else {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text("Kamu menekan ${item.name}!"),
+                  backgroundColor: item.color,
+                ),
+              );
+          }
         },
-        // Container untuk menyimpan Icon dan Text
         child: Container(
           padding: const EdgeInsets.all(8),
           child: Center(
             child: Column(
-              // Menyusun ikon dan teks di tengah kartu.
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(item.icon, color: Colors.white, size: 30.0),
@@ -152,25 +181,18 @@ class ItemHomepage {
 }
 
 class InfoCard extends StatelessWidget {
-  // Kartu informasi yang menampilkan title dan content.
-
-  final String title; // Judul kartu.
-  final String content; // Isi kartu.
+  final String title;
+  final String content;
 
   const InfoCard({super.key, required this.title, required this.content});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      // Membuat kotak kartu dengan bayangan dibawahnya.
       elevation: 2.0,
       child: Container(
-        // Mengatur ukuran dan jarak di dalam kartu.
-        width:
-            MediaQuery.of(context).size.width /
-            3.5, // menyesuaikan dengan lebar device yang digunakan.
+        width: MediaQuery.of(context).size.width / 3.5,
         padding: const EdgeInsets.all(16.0),
-        // Menyusun title dan content secara vertikal.
         child: Column(
           children: [
             Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
