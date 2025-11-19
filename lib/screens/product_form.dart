@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:chill_kicks/screens/menu.dart';
 
 class ProductFormPage extends StatefulWidget {
   const ProductFormPage({super.key});
@@ -26,220 +30,206 @@ class _ProductFormPageState extends State<ProductFormPage> {
   ];
 
   bool _isValidUrl(String url) {
-    final Uri? uri = Uri.tryParse(url);
+    final uri = Uri.tryParse(url);
     return uri != null && (uri.isScheme('http') || uri.isScheme('https'));
   }
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Center(child: Text('Add New Product')),
+        title: const Center(child: Text('Add Product Form')),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
       ),
+
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // === Product Name ===
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "Product Name",
-                  hintText: "Masukkan nama produk",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() => _name = value);
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Nama produk tidak boleh kosong!";
-                  } else if (value.length < 3) {
-                    return "Nama produk minimal 3 karakter!";
-                  } else if (value.length > 50) {
-                    return "Nama produk terlalu panjang (maks. 50 karakter)!";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // === Price ===
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "Price",
-                  hintText: "Masukkan harga (angka positif)",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  setState(() {
-                    _price = int.tryParse(value) ?? 0;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Harga tidak boleh kosong!";
-                  }
-                  final parsed = int.tryParse(value);
-                  if (parsed == null) {
-                    return "Harga harus berupa angka!";
-                  } else if (parsed <= 0) {
-                    return "Harga harus lebih dari 0!";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // === Description ===
-              TextFormField(
-                maxLines: 4,
-                decoration: InputDecoration(
-                  labelText: "Description",
-                  hintText: "Masukkan deskripsi produk",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() => _description = value);
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Deskripsi tidak boleh kosong!";
-                  } else if (value.length < 10) {
-                    return "Deskripsi minimal 10 karakter!";
-                  } else if (value.length > 300) {
-                    return "Deskripsi terlalu panjang (maks. 300 karakter)!";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // === Category Dropdown ===
-              DropdownButtonFormField<String>(
-                value: _category,
-                decoration: InputDecoration(
-                  labelText: "Category",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-                items: _categories
-                    .map(
-                      (cat) => DropdownMenuItem(
-                        value: cat,
-                        child: Text(cat[0].toUpperCase() + cat.substring(1)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (newValue) {
-                  setState(() => _category = newValue!);
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // === Thumbnail URL ===
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "Thumbnail URL (optional)",
-                  hintText: "https://contoh.com/gambar.jpg",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() => _thumbnail = value);
-                },
-                validator: (value) {
-                  if (value != null &&
-                      value.isNotEmpty &&
-                      !_isValidUrl(value)) {
-                    return "URL thumbnail tidak valid! (harus diawali http/https)";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // === Featured Switch ===
-              SwitchListTile(
-                title: const Text("Tandai sebagai Produk Unggulan"),
-                value: _isFeatured,
-                onChanged: (value) {
-                  setState(() => _isFeatured = value);
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // === SAVE BUTTON ===
-              Center(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 12,
+              // ===== PRODUCT NAME =====
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: "Product Name",
+                    hintText: "Masukkan nama produk",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text("Produk Berhasil Disimpan"),
-                          content: SingleChildScrollView(
-                            child: ListBody(
-                              children: [
-                                Text("Nama: $_name"),
-                                Text("Harga: Rp $_price"),
-                                Text("Deskripsi: $_description"),
-                                Text("Kategori: $_category"),
-                                Text(
-                                  "Thumbnail: ${_thumbnail.isEmpty ? '-' : _thumbnail}",
-                                ),
-                                Text(
-                                  "Unggulan: ${_isFeatured ? "Ya" : "Tidak"}",
-                                ),
-                              ],
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              child: const Text("OK"),
-                              onPressed: () {
-                                // Tutup pop-up
-                                Navigator.pop(context);
-
-                                // Kembalikan data ke halaman utama
-                                Navigator.pop(context, {
-                                  "name": _name,
-                                  "price": _price,
-                                  "description": _description,
-                                  "category": _category,
-                                  "thumbnail": _thumbnail,
-                                  "isFeatured": _isFeatured,
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+                  onChanged: (v) => _name = v,
+                  validator: (v) {
+                    if (v == null || v.isEmpty)
+                      return "Nama produk tidak boleh kosong!";
+                    return null;
                   },
-                  child: const Text(
-                    "Save",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+
+              // ===== PRICE =====
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextFormField(
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "Price",
+                    hintText: "Masukkan harga produk",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onChanged: (v) => _price = int.tryParse(v) ?? 0,
+                  validator: (v) {
+                    if (v == null || v.isEmpty)
+                      return "Harga tidak boleh kosong!";
+                    if (int.tryParse(v) == null)
+                      return "Harga harus berupa angka!";
+                    return null;
+                  },
+                ),
+              ),
+
+              // ===== DESCRIPTION =====
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextFormField(
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: "Description",
+                    hintText: "Masukkan deskripsi produk",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onChanged: (v) => _description = v,
+                  validator: (v) {
+                    if (v == null || v.isEmpty)
+                      return "Deskripsi tidak boleh kosong!";
+                    return null;
+                  },
+                ),
+              ),
+
+              // ===== CATEGORY =====
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: DropdownButtonFormField<String>(
+                  value: _category,
+                  decoration: InputDecoration(
+                    labelText: "Category",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  items: _categories
+                      .map(
+                        (cat) => DropdownMenuItem(
+                          value: cat,
+                          child: Text(cat[0].toUpperCase() + cat.substring(1)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => _category = v!),
+                ),
+              ),
+
+              // ===== THUMBNAIL URL =====
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: "Thumbnail URL (opsional)",
+                    hintText: "https://contoh.com/gambar.jpg",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onChanged: (v) => _thumbnail = v,
+                  validator: (v) {
+                    if (v != null && v.isNotEmpty && !_isValidUrl(v)) {
+                      return "URL tidak valid!";
+                    }
+                    return null;
+                  },
+                ),
+              ),
+
+              // ===== IS FEATURED =====
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SwitchListTile(
+                  title: const Text("Tandai sebagai Produk Unggulan"),
+                  value: _isFeatured,
+                  onChanged: (v) => setState(() => _isFeatured = v),
+                ),
+              ),
+
+              // ===== SAVE BUTTON =====
+              Align(
+                alignment: Alignment.center,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepOrange,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 14,
+                      ),
+                    ),
+
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        // ------------------------------
+                        //  POST DATA KE DJANGO BACKEND
+                        // ------------------------------
+                        final response = await request.postJson(
+                          // TODO: ganti sesuai backend Django kamu
+                          "http://127.0.0.1:8000/create-flutter/",
+                          jsonEncode({
+                            "name": _name,
+                            "price": _price,
+                            "description": _description,
+                            "category": _category,
+                            "thumbnail": _thumbnail,
+                            "is_featured": _isFeatured,
+                          }),
+                        );
+
+                        if (!context.mounted) return;
+
+                        if (response['status'] == 'success') {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Product successfully saved!"),
+                            ),
+                          );
+
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (c) => MyHomePage()),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                response['message'] ?? "Something went wrong.",
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+
+                    child: const Text(
+                      "Simpan",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
                 ),
               ),

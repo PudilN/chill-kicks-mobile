@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:chill_kicks/screens/product_form.dart';
-import 'package:chill_kicks/menu.dart';
+import 'package:chill_kicks/screens/menu.dart';
+import 'package:chill_kicks/screens/login.dart';
+import 'package:chill_kicks/screens/product_list.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
 
 class LeftDrawer extends StatelessWidget {
   const LeftDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final request = context.read<CookieRequest>();
     return Drawer(
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
@@ -62,6 +67,44 @@ class LeftDrawer extends StatelessWidget {
                         builder: (context) => const ProductFormPage(),
                       ),
                     );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.list),
+                  title: const Text('Product List'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProductListPage(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Logout'),
+                  onTap: () async {
+                    final response = await request.logout(
+                      "http://127.0.0.1:8000/auth/logout/",
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              response['message'] ?? "Logged out successfully",
+                            ),
+                          ),
+                        );
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                        (Route<dynamic> route) => false,
+                      );
+                    }
                   },
                 ),
               ],
